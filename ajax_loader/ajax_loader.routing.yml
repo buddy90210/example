@@ -1,0 +1,76 @@
+ajax_loader.routing:
+  path: '/project_services/ajax_loader/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxLoader'
+  requirements:
+    _permission: 'access content'
+
+ajax_loader_edit.routing:
+  path: '/project_services/ajax_loader/edit/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxLoaderEdit'
+  requirements:
+    _permission: 'access content'
+
+ajax_loader_delete.routing:
+  path: '/project_services/ajax_loader/delete/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxLoaderDelete'
+  requirements:
+    _permission: 'access content'
+
+ajax_edit_project.routing:
+  path: '/project_services/ajax_loader/project/edit/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxProjectEdit'
+  requirements:
+    _permission: 'access content'
+
+ajax_delete_project.routing:
+  path: '/project_services/ajax_loader/project/delete/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxProjectDelete'
+  requirements:
+    _permission: 'access content'
+
+ajax_add_job.routing:
+  path: '/project_services/ajax_loader/job/add/{object_id}/{project_id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxJobAdd'
+  requirements:
+    _permission: 'access content'
+
+ajax_edit_job.routing:
+  path: '/project_services/ajax_loader/job/edit/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxJobEdit'
+  requirements:
+    _permission: 'access content'
+
+ajax_delete_job.routing:
+  path: '/project_services/ajax_loader/job/delete/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxJobDelete'
+  requirements:
+    _permission: 'access content'
+
+ajax_add_stage.routing:
+  path: '/project_services/ajax_loader/stage/add/{object_id}/{project_id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxStageAdd'
+  requirements:
+    _permission: 'access content'
+
+ajax_edit_stage.routing:
+  path: '/project_services/ajax_loader/stage/edit/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxStageEdit'
+  requirements:
+    _permission: 'access content'
+
+ajax_delete_stage.routing:
+  path: '/project_services/ajax_loader/stage/delete/{id}'
+  defaults:
+    _controller: '\Drupal\ajax_loader\Controller\AjaxLoaderController::customAjaxStageDelete'
+  requirements:
+    _permission: 'access content'

@@ -1,0 +1,5 @@
+batch_actions.admin:
+  title: 'Запустить массовую операцию'
+  parent: system.admin_config_system
+  weight: 99
+  route_name: batch_actions.admin

@@ -1,0 +1,7 @@
+batch_actions.admin:
+  path: '/admin/config/system/batch-actions'
+  defaults:
+    _title: 'Запустить массовую операцию'
+    _form: '\Drupal\batch_actions\Form\ActionsForm'
+  requirements:
+    _permission: 'administer site configuration'

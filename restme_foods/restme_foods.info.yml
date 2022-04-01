@@ -1,0 +1,8 @@
+name: 'Restme Foods'
+type: module
+description: 'Restme foods functionality'
+core: 8.x
+package: 'Custom'
+dependencies:
+  - restme
+  - inline_entity_form

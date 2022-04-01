@@ -1,0 +1,400 @@
+<?php
+
+/**
+ * @file
+ * Contains restme_foods.module.
+ */
+
+use Drupal\restme_foods\Entity\OfferFood;
+use Drupal\restme_foods\Entity\OfferService;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\inline_entity_form\ElementSubmit;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_help().
+ */
+function restme_foods_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the restme_foods module.
+    case 'help.page.restme_foods':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('restme foods functionality') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+
+/**
+ * Implements hook_theme().
+ */
+function restme_foods_theme($existing, $type, $theme, $path) {
+  return [
+    'form_offer_table' => [
+      'render element' => 'form',
+      'function' => 'theme_form_offer_table'
+    ],
+  ];
+}
+
+/**
+ * Расчет себестоимости предложения при сохранении
+ * @param $entity_type_manager
+ * @param $entity
+ * @param $fields
+ * @param $delta
+ * @return int Себестоимость предложения
+ */
+function computed_field_field_offer_cost_compute(
+  $entity_type_manager,
+  $entity,
+  $fields,
+  $delta
+) {
+  return restme_foods_get_offer_cost($fields['field_offer_foods'],
+    $fields['field_offer_services']);
+}
+
+/**
+ * Расчет себестоимости предложения
+ * @param array $foods
+ * @param array $services
+ * @return int Себестоимость предложения
+ */
+function restme_foods_get_offer_cost(array $foods = [], array $services = []) {
+
+  $offer_cost = array_reduce($foods, function ($cost, $item) {
+    $offer_food = OfferFood::load($item['target_id']);
+
+    if (!$offer_food) {
+      return $cost;
+    }
+
+    $count = $offer_food->getCount();
+    $food = $offer_food->getFood();
+
+    if (!$count || !$food) {
+      return $cost;
+    }
+    return $cost + ($count * $food->get('field_food_price')->value);
+  }, 0);
+
+  $offer_cost = array_reduce($services, function ($cost, $item) {
+    $offer_service = OfferService::load($item['target_id']);
+
+    if (!$offer_service) {
+      return $cost;
+    }
+
+    $count = $offer_service->getCount();
+    $service = $offer_service->getService();
+
+    if (!$count || !$service) {
+      return $cost;
+    }
+
+    return $cost + ($count * $service->get('field_service_price')->value);
+
+  }, $offer_cost);
+
+
+  return $offer_cost;
+}
+
+/**
+ * Implements hook_entity_type_build().
+ */
+function restme_foods_entity_type_build(array &$entity_types) {
+  $entity_types['offer_food_entity']->setHandlerClass('inline_form',
+    '\Drupal\restme_foods\Form\OfferFoodInlineForm');
+  $entity_types['offer_service_entity']->setHandlerClass('inline_form',
+    '\Drupal\restme_foods\Form\OfferServiceInlineForm');
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function restme_foods_form_alter(
+  &$form,
+  FormStateInterface $form_state,
+  $form_id
+) {
+  $widget_state = $form_state->get('inline_entity_form');
+
+  if ($form_id == 'node_offer_edit_form' && !is_null($widget_state)) {
+    ElementSubmit::addCallback($form['actions']['draft'], $form);
+    ElementSubmit::addCallback($form['save_catalog_food'], $form);
+    ElementSubmit::addCallback($form['save_catalog_service'], $form);
+
+    if (empty($form['#ief_element_submit'])) {
+     $form['#ief_element_submit'] = [];
+    }
+
+    array_unshift($form['#ief_element_submit'], 'restme_foods_remove_zero_count_items');
+  }
+}
+
+/**
+ * Если указано нулевое количество блюд/услуг то удаляем их.
+ *
+ * @param array $form
+ *   Form array.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   Form state.
+ */
+function restme_foods_remove_zero_count_items(array $form, FormStateInterface $form_state) {
+  foreach ($form_state->get('inline_entity_form') as &$widget_state) {
+    $widget_state += ['entities' => [], 'delete' => []];
+
+    foreach ($widget_state['entities'] as $delta => $entity_item) {
+      /** @var \Drupal\restme_foods\Entity\OfferFoodInterface|\Drupal\restme_foods\Entity\OfferServiceInterface $entity */
+      $entity = $entity_item['entity'];
+
+      if (!in_array($entity->getEntityTypeId(), ['offer_service_entity', 'offer_food_entity']) || $entity->getCount() > 0) {
+        continue;
+      }
+
+      if (empty($entity->id())) {
+        unset($widget_state['entities'][$delta]);
+      }
+      else {
+        $widget_state['delete'][] = $entity;
+        unset($widget_state['entities'][$delta]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_inline_entity_form_entity_form_alter().
+ */
+function restme_foods_inline_entity_form_entity_form_alter(
+  &$entity_form,
+  &$form_state
+) {
+  if ($entity_form['#op'] == 'edit' && $entity_form['#entity_type'] == 'offer_service_entity') {
+    $offer_form_state = $form_state->get('offer_form');
+
+    if (!empty($entity_form['#entity'])) {
+      /** @var \Drupal\restme_foods\Entity\OfferServiceInterface $offer_service */
+      $offer_service = $entity_form['#entity'];
+      /** @var \Drupal\node\NodeInterface $service_entity */
+      $service_entity = $offer_service->getService();
+    }
+
+    // Устанавливаем единицы измерения из настройки услуги.
+    if (!empty($service_entity)) {
+      $unit = $service_entity->get('field_service_unit')->value;
+      $entity_form['count']['widget'][0]['value']['#field_suffix'] = Markup::create($unit);
+    }
+
+    if (!empty($offer_form_state['client_edit_mode'])) {
+      if (!empty($offer_service) && !empty($service_entity) && $service_entity->get('field_editing_disabled')->value) {
+        $field_suffix = NULL;
+        if (!empty($entity_form['count']['widget'][0]['value']['#field_suffix'])) {
+          $field_suffix = $entity_form['count']['widget'][0]['value']['#field_suffix'];
+        }
+        $entity_form['count']['widget'][0]['value'] = [
+          '#type' => 'value',
+          '#markup' => $offer_service->getCount() . $field_suffix,
+          '#value' => $offer_service->getCount(),
+        ];
+      }
+    }
+  }
+  elseif ($entity_form['#op'] == 'edit' && $entity_form['#entity_type'] == 'offer_food_entity') {
+    if (!empty($entity_form['#entity'])) {
+      /** @var \Drupal\restme_foods\Entity\OfferFoodInterface $offer_food */
+      $offer_food = $entity_form['#entity'];
+      /** @var \Drupal\node\NodeInterface $food_entity */
+      $food_entity = $offer_food->getFood();
+    }
+
+    // Устанавливаем минимальный заказ для поля количества
+    if (!empty($food_entity)) {
+      $min_order = $food_entity->get('field_minimum_order')->value;
+      $entity_form['count']['widget'][0]['value']['#attributes']['min'] = $min_order;
+    }
+  }
+}
+
+/**
+ * @param $variables
+ * @return mixed
+ */
+function theme_form_offer_table($variables) {
+  $renderer = \Drupal::service('renderer');
+  $form = $variables['form'];
+  $entity_type = $form['#entity_type'];
+
+  $fields = $form['#table_fields'];
+  $has_tabledrag = \Drupal::entityTypeManager()
+    ->getHandler($entity_type, 'inline_form')
+    ->isTableDragEnabled($form);
+
+  // Sort the fields by weight.
+  uasort($fields, '\Drupal\Component\Utility\SortArray::sortByWeightElement');
+
+  $header = [];
+  if ($has_tabledrag) {
+    $header[] = ['data' => '', 'class' => ['ief-tabledrag-header']];
+    $header[] = [
+      'data' => t('Sort order'),
+      'class' => ['ief-sort-order-header']
+    ];
+  }
+  // Add header columns for each field.
+  $first = TRUE;
+  foreach ($fields as $field_name => $field) {
+    $column = [
+      'data' => $field['label'],
+      'class' => ['inline-entity-form-' . $entity_type . '-' . $field_name]
+    ];
+    // The first column gets a special class.
+    if ($first) {
+      $column['class'][] = 'ief-first-column-header';
+      $first = FALSE;
+    }
+    $header[] = $column;
+  }
+
+  $header[] = '';
+
+  // Build an array of entity rows for the table.
+  $rows = [];
+  foreach (Element::children($form) as $key) {
+    /** @var \Drupal\Core\Entity\FieldableEntityInterface $entity */
+    $entity = $form[$key]['#entity'];
+    $row_classes = ['ief-row-entity', 'ief-row-entity--' . $key];
+    $cells = [];
+    if ($has_tabledrag) {
+      $cells[] = ['data' => '', 'class' => ['ief-tabledrag-handle']];
+      $cells[] = $renderer->render($form[$key]['delta']);
+      $row_classes[] = 'draggable';
+    }
+    // Add a special class to rows that have a form underneath, to allow
+    // for additional styling.
+    if (!empty($form[$key]['form'])) {
+      $row_classes[] = 'ief-row-entity-form';
+    }
+
+    foreach ($fields as $field_name => $field) {
+      if ($field['type'] == 'label') {
+        $data = $variables['form'][$key]['#label'];
+      }
+      elseif ($field['type'] == 'field' && $entity->hasField($field_name)) {
+        $display_options = ['label' => 'hidden'];
+        if (isset($field['display_options'])) {
+          $display_options += $field['display_options'];
+        }
+        $data = $entity->get($field_name)->view($display_options);
+      }
+      elseif ($field['type'] == 'callback') {
+        $arguments = [
+          'entity' => $entity,
+          'variables' => $variables,
+          'form_element' => $form[$key],
+        ];
+        if (isset($field['callback_arguments'])) {
+          $arguments = array_merge($arguments, $field['callback_arguments']);
+        }
+
+        $data = call_user_func_array($field['callback'], $arguments);
+      }
+      else {
+        $data = t('N/A');
+      }
+
+      $cells[] = [
+        'data' => $data,
+        'class' => ['inline-entity-form-' . $entity_type . '-' . $field_name]
+      ];
+    }
+
+    $cells[] = $renderer->render($form[$key]['actions']);
+
+    // Create the row.
+    $rows[] = ['data' => $cells, 'class' => $row_classes];
+  }
+
+  if (!empty($rows)) {
+    $tabledrag = [];
+    if ($has_tabledrag) {
+      $tabledrag = [
+        [
+          'action' => 'order',
+          'relationship' => 'sibling',
+          'group' => 'ief-entity-delta',
+        ],
+      ];
+    }
+
+    $table = [
+      '#type' => 'table',
+      '#header' => $header,
+      '#rows' => $rows,
+      '#attributes' => [
+        'id' => 'ief-entity-table-' . $form['#id'],
+        'class' => ['ief-entity-table'],
+      ],
+      '#tabledrag' => $tabledrag,
+    ];
+
+    return $renderer->render($table);
+  }
+}
+
+
+/**
+ * Implements hook_node_update().
+ */
+function restme_foods_node_update(\Drupal\node\NodeInterface $node) {
+  if ($node->getType() == 'food') {
+    $food_price = $node->get('field_food_price')->value;
+    $original_food_price = $node->original->get('field_food_price')->value;
+
+    if ($food_price != $original_food_price) {
+      $offers_to_update = \Drupal::service('restme.food_manager')->getOffersToUpdate($node->id());
+
+      /** @var QueueFactory $queue_factory */
+      $queue_factory = \Drupal::service('queue');
+      /** @var QueueInterface $queue */
+      $queue = $queue_factory->get('restme_offer_update');
+
+      foreach ($offers_to_update as $id) {
+        $item = new \stdClass();
+        $item->nid = $id;
+
+        $queue->createItem($item);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_node_delete().
+ * @param \Drupal\node\NodeInterface $node
+ */
+function restme_foods_node_delete(NodeInterface $node) {
+  if ($node->getType() == 'offer') {
+    //Удалить сущность offer_foods, offer_services, grade
+    foreach ($node->get('field_offer_foods') as $food) {
+      if (!empty($food->entity)) {
+        $food->entity->delete();
+      }
+    }
+    foreach ($node->get('field_offer_services') as $service) {
+      if (!empty($service->entity)) {
+        $service->entity->delete();
+      }
+    }
+  }
+}

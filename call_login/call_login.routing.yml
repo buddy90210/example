@@ -1,0 +1,6 @@
+get_call_login_form.routing:
+  path: '/call_service/get_call_login_form/{from}'
+  defaults:
+    _controller: '\Drupal\call_login\Controller\CallLoginController::getLoginForm'
+  requirements:
+    _permission: 'access content'

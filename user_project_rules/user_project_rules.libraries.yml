@@ -1,0 +1,8 @@
+changePermission:
+  version: 1.x
+  js:
+    js/changePermission.js: {}
+  dependencies:
+    - core/jquery.once
+    - core/drupalSettings
+    - core/drupal.dialog.ajax

@@ -1,0 +1,33 @@
+add offer food entity entities:
+  title: 'Create new Offer food entity entities'
+
+administer offer food entity entities:
+  title: 'Administer Offer food entity entities'
+  description: 'Allow to access the administration form to configure Offer food entity entities.'
+  restrict access: true
+
+delete offer food entity entities:
+  title: 'Delete Offer food entity entities'
+
+edit offer food entity entities:
+  title: 'Edit Offer food entity entities'
+
+view offer food entity entities:
+  title: 'View published Offer food entity entities'
+
+add offer service entity entities:
+  title: 'Create new Offer service entity entities'
+
+administer offer service entity entities:
+  title: 'Administer Offer service entity entities'
+  description: 'Allow to access the administration form to configure Offer service entity entities.'
+  restrict access: true
+
+delete offer service entity entities:
+  title: 'Delete Offer service entity entities'
+
+edit offer service entity entities:
+  title: 'Edit Offer service entity entities'
+
+view offer service entity entities:
+  title: 'View published Offer service entity entities'

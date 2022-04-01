@@ -1,0 +1,13 @@
+edit_field_inline.routing:
+  path: '/services/inline_field_edit/{field}/{id}/{value}/{selector}/{entity_type}'
+  defaults:
+    _controller: '\Drupal\xedit\Controller\XeditController::editFieldInline'
+  requirements:
+    _permission: 'access content'
+
+edit_field_inline_empty.routing:
+  path: '/services/inline_field_edit_empty/{field}/{id}/{selector}/{entity_type}'
+  defaults:
+    _controller: '\Drupal\xedit\Controller\XeditController::editFieldInlineEmpty'
+  requirements:
+    _permission: 'access content'

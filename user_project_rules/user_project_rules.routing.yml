@@ -1,0 +1,13 @@
+user_project_rules.change:
+  path: '/project_services/change_user_project_permissions/{id}'
+  defaults:
+    _controller: '\Drupal\user_project_rules\Controller\ChangeUserPermissionController::changeUserPermission'
+  requirements:
+    _permission: 'access content'
+
+user_project_rules.delete:
+  path: '/project_services/delete_user_project_permissions/{id}'
+  defaults:
+    _controller: '\Drupal\user_project_rules\Controller\ChangeUserPermissionController::deleteUserPermission'
+  requirements:
+    _permission: 'access content'

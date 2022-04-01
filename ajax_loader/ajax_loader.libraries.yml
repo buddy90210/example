@@ -1,0 +1,7 @@
+ajax_loader:
+  version: 1.x
+  js:
+    js/ajaxLoader.js: {}
+  dependencies:
+    - core/drupalSettings
+    - core/drupal.dialog.ajax

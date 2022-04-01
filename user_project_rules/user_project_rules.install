@@ -1,0 +1,115 @@
+<?php
+
+/**
+ * @return mixed
+ * Implements hook_schema()
+ * Rule options 
+ * 0 - not view
+ * 1 - view only
+ * 2 - View, Create
+ * 3 - View, Edit all
+ * 4 - View, Create, Edit Own
+ * 5 - View, Create, Edit Own, Delete Own
+ * 6 - View, Create, Edit All, Delete Own
+ * 7 - View, Create, Edit All, Delete All
+ */
+
+function user_project_rules_schema() {
+
+  $schema['user_project_rules'] = array(
+    'description' => 'Custom Rules for users permissions in project',
+    'fields' => array(
+      'id' => array(
+        'description' => 'ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+       ),
+      'uid' => array(
+        'description' => 'UID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+      ),
+      'pid' => array(
+        'description' => 'Project ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pid_uid' => array(
+        'description' => 'Project ID author',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'job' => array(
+        'description' => 'Rule for project jobs',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+      ),
+      'mat' => array(
+        'description' => 'Rule for project materials',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+      ),
+      'ppr' => array(
+        'description' => 'Rule for project PPR',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+      ),
+      'media' => array(
+        'description' => 'Rule for project media files',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+      ),
+      'name' => array(
+        'description' => 'User name',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'email' => array(
+        'description' => 'User e-mail for activation',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'post' => array(
+        'description' => 'Short name of user functions for project',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'comment' => array(
+        'description' => 'Comment for user permission',
+        'type' => 'text',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'timestamp' => array(
+        'description' => 'Timestamp',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function user_project_rules_uninstall() {
+    # Remove table
+    \Drupal::state()->delete('user_project_rules.user_project_rules');
+}

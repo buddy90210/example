@@ -1,0 +1,9 @@
+call_login:
+  version: 1.x
+  js:
+    /libraries/inputmask/jquery.inputmask.min.js: { type: external }
+    js/callLogin.js: {}
+  dependencies:
+    - core/jquery.once
+    - core/drupalSettings
+    - core/drupal.dialog.ajax

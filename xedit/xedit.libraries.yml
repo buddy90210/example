@@ -1,0 +1,12 @@
+x-editor:
+  version: 1.x
+  css:
+    base:
+      /libraries/x-editor/css/jquery-editable.css: {}
+  js:
+    /libraries/x-editor/js/jquery-editable-poshytip.js: {}
+    js/xedit.js: {}
+  dependencies:
+    - core/jquery.once
+    - core/drupalSettings
+    - core/drupal.dialog.ajax

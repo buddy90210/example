@@ -1,0 +1,5 @@
+<?php
+
+function ajax_loader_preprocess_node(&$vars) {
+    $vars['#attached']['library'][] = 'ajax_loader/ajax_loader';
+}
